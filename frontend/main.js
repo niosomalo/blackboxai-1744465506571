@@ -132,8 +132,17 @@ if (window.location.pathname.includes('menu.html')) {
 
     // Initialize page
     document.addEventListener('DOMContentLoaded', async () => {
-        await loadBahanData();
-        await loadMenuData();
+        try {
+            const bahanLoaded = await loadBahanData();
+            if (!bahanLoaded) {
+                showAlert('Failed to load ingredients data', 'error');
+                return;
+            }
+            await loadMenuData();
+        } catch (error) {
+            console.error('Initialization error:', error);
+            showAlert('Failed to initialize page', 'error');
+        }
     });
 
     // Load menu data
@@ -186,16 +195,13 @@ if (window.location.pathname.includes('menu.html')) {
             if (data.status === 'success') {
                 bahanList = data.data;
                 console.log('Loaded bahan data:', bahanList);
-                // Update any existing recipe items
-                const selects = document.querySelectorAll('.resep-item select');
-                console.log('Found select elements:', selects.length);
-                selects.forEach(select => {
-                    populateBahanDropdown(select);
-                });
+                return true;
             }
+            return false;
         } catch (error) {
             console.error('Failed to load bahan data:', error);
             showAlert('Failed to load bahan data', 'error');
+            return false;
         }
     }
 
@@ -236,11 +242,15 @@ if (window.location.pathname.includes('menu.html')) {
     }
 
     // Modal functions
-    window.openAddModal = function() {
+    window.openAddModal = async function() {
         document.getElementById('modalTitle').textContent = 'Tambah Menu';
         document.getElementById('menuForm').reset();
         document.getElementById('menuId').value = '';
-        document.getElementById('menuModal').classList.remove('hidden');
+        
+        // Ensure bahan data is loaded
+        if (!bahanList.length) {
+            await loadBahanData();
+        }
         
         // Clear existing recipe items
         const container = document.getElementById('resepContainer');
@@ -255,6 +265,9 @@ if (window.location.pathname.includes('menu.html')) {
         populateBahanDropdown(select);
         
         container.appendChild(clone);
+        
+        // Show the modal
+        document.getElementById('menuModal').classList.remove('hidden');
     }
 
     window.closeModal = function() {
